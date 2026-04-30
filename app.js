@@ -437,6 +437,35 @@ function LossCurve({ history, height = 120, showAcc = true }) {
     );
 }
 
+function InfoTooltip({ text, title }) {
+    const [show, setShow] = React.useState(false);
+    const ref = React.useRef(null);
+    const [pos, setPos] = React.useState({ top: 0, left: 0 });
+
+    const handleShow = () => {
+        if (ref.current) {
+            const r = ref.current.getBoundingClientRect();
+            setPos({ top: r.bottom + 6, left: Math.min(r.left, window.innerWidth - 310) });
+        }
+        setShow(true);
+    };
+
+    return (
+        <>
+            <span ref={ref} className="info-trigger" onMouseEnter={handleShow} onMouseLeave={() => setShow(false)} onClick={() => setShow(!show)} tabIndex={0}>?</span>
+            {show && (
+                <>
+                    <div style={{ position: "fixed", inset: 0, zIndex: 199 }} onMouseDown={() => setShow(false)} />
+                    <div className="info-popup" style={{ top: pos.top, left: pos.left }}>
+                        <div className="info-title">{title}</div>
+                        <div className="info-body">{text}</div>
+                    </div>
+                </>
+            )}
+        </>
+    );
+}
+
 function WeightMatrixView({ w1, w2, prevW1, prevW2, b1, b2, setWeight, setBias, label, editingCell, setEditingCell, editValue, setEditValue }) {
     const handleCellClick = (matrix, row, col, value) => {
         setEditingCell({ matrix, row, col });
@@ -1024,25 +1053,25 @@ function App() {
         <>
             <div className="top-bar">
                 <div className="param-group">
-                    <label>LR:</label>
+                    <label>LR:<InfoTooltip title="Learning Rate" text={<><p>Controls how big each weight update is after seeing an error.</p><p>• Too high → training overshoots, loss oscillates</p><p>• Too low → training crawls, gets stuck</p><p>• Typical range: <code>0.01 – 0.5</code></p></>} /></label>
                     <input type="range" min="0.001" max="1" step="0.001" value={learningRate} onChange={e => setLearningRate(parseFloat(e.target.value))} />
                     <span className="param-val">{learningRate.toFixed(3)}</span>
                 </div>
                 <div className="param-group">
-                    <label>Hidden:</label>
+                    <label>Hidden:<InfoTooltip title="Hidden Neurons" text={<><p>Number of neurons in the hidden layer.</p><p>• More neurons = more capacity to learn complex patterns</p><p>• Too few → underfitting, can't learn all digits</p><p>• Too many → overfitting, memorizes training data</p><p>• Default <code>8</code> works well for 7-segment digits</p><p>• Changing this resets all weights and clears saved epochs</p></>} /></label>
                     <input type="number" min="4" max="32" value={hiddenSize} onChange={e => setHiddenSize(Math.max(4, Math.min(32, parseInt(e.target.value) || 8)))} />
                 </div>
                 <div className="param-group">
-                    <label>Batch:</label>
+                    <label>Batch:<InfoTooltip title="Batch Size" text={<><p>Number of training samples processed per auto-train tick.</p><p>• <code>1</code> = pure stochastic gradient descent (noisy but fast)</p><p>• Higher = more stable updates, faster epochs</p><p>• Max <code>10</code> since there are only 10 training samples total</p></>} /></label>
                     <input type="number" min="1" max="10" value={batchSize} onChange={e => setBatchSize(Math.max(1, Math.min(10, parseInt(e.target.value) || 1)))} />
                 </div>
                 <div className="param-group">
-                    <label>Momentum:</label>
+                    <label>Momentum:<InfoTooltip title="Momentum" text={<><p>Adds inertia to weight updates, carrying forward the direction of previous steps.</p><p>• Helps escape shallow local minima and speeds up convergence</p><p>• <code>0</code> = no momentum, pure gradient descent</p><p>• <code>0.9</code> = strong momentum (common in practice)</p><p>• Too high → overshooting, oscillation around the minimum</p></>} /></label>
                     <input type="range" min="0" max="0.99" step="0.01" value={momentum} onChange={e => setMomentum(parseFloat(e.target.value))} />
                     <span className="param-val">{momentum.toFixed(2)}</span>
                 </div>
                 <div className="param-group">
-                    <label>Dropout:</label>
+                    <label>Dropout:<InfoTooltip title="Dropout" text={<><p>Randomly disables a fraction of hidden neurons during training to prevent overfitting.</p><p>• <code>0</code> = no dropout (all neurons active)</p><p>• <code>0.2</code> = 20% of hidden neurons randomly silenced each step</p><p>• Forces the network to learn redundant, robust features</p><p>• Only useful with larger hidden layers (&gt;12 neurons)</p></>} /></label>
                     <input type="range" min="0" max="0.5" step="0.01" value={dropout} onChange={e => setDropout(parseFloat(e.target.value))} />
                     <span className="param-val">{dropout.toFixed(2)}</span>
                 </div>
@@ -1053,8 +1082,8 @@ function App() {
                     <h2>7-Segment Input</h2>
                     <SevenSegmentDisplay segments={segments} toggleSegment={toggleSegment} />
                     <div style={{ textAlign: "center", marginTop: "16px", display: "flex", gap: "8px", justifyContent: "center" }}>
-                        <button className="primary" onClick={runPrediction} disabled={animationProgress > 0}>Predict</button>
-                        <button className="danger" onClick={clearAll}>Clear</button>
+                        <button className="primary" onClick={runPrediction} disabled={animationProgress > 0} title="Run the current 7-segment pattern through the network and show the predicted digit">Predict</button>
+                        <button className="danger" onClick={clearAll} title="Turn off all segments and clear the prediction">Clear</button>
                     </div>
                     <div className="prediction-big">{animationProgress > 0 ? "..." : prediction}</div>
                 </div>
@@ -1116,21 +1145,22 @@ function App() {
 
                         {activeTab === "train" && (
                             <>
+                                <div style={{ fontSize: "10px", color: "#484f58", textAlign: "right", marginBottom: "4px" }}>Keyboard: <code style={{ color: "#8b949e" }}>Space</code> = Auto Train · <code style={{ color: "#8b949e" }}>Shift+←</code> = Undo · <code style={{ color: "#8b949e" }}>Shift+→</code> = Step</div>
                                 <div className="train-controls">
-                                    <button className="danger" onClick={doUndo} disabled={undoStack.length === 0}>← Prev Epoch</button>
-                                    <button className="primary" onClick={doTrainStep}>Next Epoch →</button>
+                                    <button className="danger" onClick={doUndo} disabled={undoStack.length === 0} title="Revert to previous epoch's weights">← Prev Epoch</button>
+                                    <button className="primary" onClick={doTrainStep} title="Train on one random sample (forward + backward)">Next Epoch →</button>
                                     <button className="warning" onClick={() => setAutoTraining(!autoTraining)}>{autoTraining ? "Pause" : "Auto Train"}</button>
-                                    <button onClick={skipTraining}>Skip Training</button>
+                                    <button onClick={skipTraining} title="Run 2000 training steps instantly">Skip Training</button>
                                     <button className="reset" onClick={() => { pushUndoSnap(); nn.initWeights(); setPrevWeights({ w1: null, w2: null }); setWeightVersion(prev => prev + 1); setEditingCell(null); }}>Reset Weights</button>
                                     <button onClick={() => setShowEpochList(!showEpochList)} style={{ fontSize: "11px" }}>
                                         {showEpochList ? "Hide" : "Load"} Epoch ({savedEpochs.length})
                                     </button>
-                                    <button onClick={exportWeightsCSV} style={{ fontSize: "11px" }}>Export CSV</button>
-                                    <label style={{ fontSize: "11px", padding: "6px 16px", background: "#21262d", border: "1px solid #30363d", borderRadius: "6px", cursor: "pointer", color: "#e6edf3" }}>
+                                    <button onClick={exportWeightsCSV} style={{ fontSize: "11px" }} title="Download all weights and biases as CSV">Export CSV</button>
+                                    <label style={{ fontSize: "11px", padding: "6px 16px", background: "#21262d", border: "1px solid #30363d", borderRadius: "6px", cursor: "pointer", color: "#e6edf3" }} title="Upload a previously exported CSV to restore weights">
                                         Import CSV
                                         <input type="file" accept=".csv" onChange={e => { if (e.target.files[0]) importWeightsCSV(e.target.files[0]); e.target.value = ""; }} style={{ display: "none" }} />
                                     </label>
-                                    <div className="train-status">
+                                    <div className="train-status" title="Current training progress. Loss = cross-entropy error (lower is better). Acc = accuracy on the last sample trained.">
                                         Epoch: <span style={{ color: "#58a6ff" }}>{epoch}</span>
                                         {" "} | Loss: <span style={{ color: "#f85149" }}>{history.length > 0 ? history[history.length - 1].loss.toFixed(4) : "—"}</span>
                                         {" "} | Acc: <span style={{ color: "#2ea043" }}>{history.length > 0 ? (history[history.length - 1].accuracy * 100).toFixed(0) + "%" : "—"}</span>
@@ -1171,7 +1201,7 @@ function App() {
                                 )}
 
                                 <div style={{ background: "#0d1117", borderRadius: "8px", padding: "12px", marginBottom: "12px" }}>
-                                    <h3 style={{ color: "#58a6ff", marginBottom: "8px" }}>Manual Forward / Backward Pass</h3>
+                                    <h3 style={{ color: "#58a6ff", marginBottom: "8px" }}>Manual Forward / Backward Pass <InfoTooltip title="How Neural Networks Learn" text={<><p>Training has two alternating steps:</p><p><strong style={{ color: "#58a6ff" }}>1. Forward Pass</strong> — Feed input through the network to get a prediction. Data flows left → right: segments → hidden neurons → output probabilities.</p><p><strong style={{ color: "#d29922" }}>2. Backward Pass</strong> — Compare prediction to the correct answer, compute gradients (how much each weight contributed to the error), then update weights to reduce that error next time.</p><p>These two steps repeated thousands of times is how a network learns. Each pair = <code>1 epoch</code>.</p></>} /></h3>
                                     <div style={{ display: "flex", gap: "16px", alignItems: "flex-start", flexWrap: "wrap" }}>
                                         <div>
                                             <div style={{ fontSize: "11px", color: "#8b949e", marginBottom: "4px" }}>Input [a b c d e f g]</div>
@@ -1208,8 +1238,8 @@ function App() {
                                             </div>
                                         </div>
                                         <div style={{ display: "flex", gap: "8px", alignItems: "flex-end" }}>
-                                            <button className="primary" onClick={doManualForward}>Forward Pass</button>
-                                            <button className="warning" onClick={doManualBackward} disabled={!manualResult}>Backward Pass</button>
+                                            <button className="primary" onClick={doManualForward}>Forward Pass <InfoTooltip title="Forward Pass" text={<><p>Feeds the current input through every layer of the network:</p><p><code>input × w1 + b1 → sigmoid → hidden</code></p><p><code>hidden × w2 + b2 → softmax → output</code></p><p>Shows the prediction probabilities for all 10 digits and the cross-entropy loss (how far the prediction is from the target). <em>Does not change any weights.</em></p></>} /></button>
+                                            <button className="warning" onClick={doManualBackward} disabled={!manualResult}>Backward Pass <InfoTooltip title="Backward Pass (Backpropagation)" text={<><p>Calculates how much each weight contributed to the error and updates them:</p><p>1. Compute <strong>output gradients</strong>: <code>prediction - target</code></p><p>2. Propagate gradients <strong>backward</strong> through w2 to hidden layer</p><p>3. Compute <strong>hidden gradients</strong> via chain rule</p><p>4. Update all weights using gradients + momentum</p><p>After this, the network is slightly better at this input. The epoch counter increments by 1.</p></>} /></button>
                                         </div>
                                     </div>
 

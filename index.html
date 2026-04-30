@@ -110,6 +110,23 @@
         .matrix-table { font-size: 10px; border-collapse: collapse; }
         .matrix-table td { padding: 2px 4px; text-align: center; border: 1px solid #21262d; min-width: 40px; }
         .prediction-big { font-size: 72px; text-align: center; color: #58a6ff; margin: 16px 0; font-weight: bold; }
+        .info-trigger {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 16px; height: 16px; border-radius: 50%; background: #30363d;
+            color: #8b949e; font-size: 10px; font-weight: bold; cursor: help;
+            margin-left: 4px; vertical-align: middle; line-height: 1;
+            transition: background 0.2s, color 0.2s;
+        }
+        .info-trigger:hover { background: #58a6ff; color: #0d1117; }
+        .info-popup {
+            position: fixed; background: #1c2128; border: 1px solid #444c56;
+            border-radius: 8px; padding: 12px 14px; font-size: 12px; z-index: 200;
+            max-width: 300px; box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+            pointer-events: auto; line-height: 1.5;
+        }
+        .info-popup .info-title { color: #58a6ff; font-weight: bold; font-size: 13px; margin-bottom: 6px; }
+        .info-popup .info-body { color: #c9d1d9; }
+        .info-popup .info-body code { background: #0d1117; padding: 1px 4px; border-radius: 3px; color: #f0883e; font-size: 11px; }
         .inspect-popup {
             position: fixed; background: #1c2128; border: 1px solid #444c56;
             border-radius: 8px; padding: 10px; font-size: 11px; z-index: 100;
